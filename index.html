@@ -74,6 +74,82 @@
         }
         .btn-delete:hover { background: #FF5252; color: white; }
         .hwid-text { font-family: monospace; color: #aaa; }
+
+        /* Custom Modal Styling */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+        .modal-box {
+            background-color: var(--card-color);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 30px;
+            width: 90%;
+            max-width: 420px;
+            text-align: center;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .modal-overlay.active .modal-box {
+            transform: scale(1);
+        }
+        .modal-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #FF5252;
+            margin-bottom: 12px;
+        }
+        .modal-desc {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .modal-btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            transition: 0.2s;
+            flex: 1;
+        }
+        .modal-btn.confirm {
+            background-color: #FF5252;
+            color: white;
+        }
+        .modal-btn.confirm:hover {
+            background-color: #ff3333;
+        }
+        .modal-btn.cancel {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+        .modal-btn.cancel:hover {
+            background-color: rgba(255,255,255,0.05);
+        }
+
         /* Responsive Adjustments */
         @media (max-width: 768px) {
             body { flex-direction: column; overflow: auto; }
@@ -141,11 +217,50 @@
                 </tbody>
             </table>
         </div>
+    <!-- Custom Confirmation Modal -->
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">Hapus Lisensi</div>
+            <div id="confirm-desc" class="modal-desc">Yakin ingin menghapus lisensi ini?</div>
+            <div class="modal-actions">
+                <button id="confirm-cancel" class="modal-btn cancel">Batal</button>
+                <button id="confirm-ok" class="modal-btn confirm">Hapus</button>
+            </div>
+        </div>
     </div>
 
     <script>
         const SUPABASE_URL = "https://eemjrotrcftjdazyheoc.supabase.co/rest/v1/licenses";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlbWpyb3RyY2Z0amRhenloZW9jIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTIyMTU3MCwiZXhwIjoyMDkwNzk3NTcwfQ.2yY8HeqdxzJI08dzqv7ZXm7nsFcSvMWEgQAMMiHHvr8";
+
+        // Custom Confirm Modal Handler
+        let confirmResolve = null;
+        function showConfirm(message) {
+            document.getElementById("confirm-desc").innerText = message;
+            const modal = document.getElementById("confirm-modal");
+            modal.style.display = "flex";
+            setTimeout(() => modal.classList.add("active"), 10);
+            return new Promise((resolve) => {
+                confirmResolve = resolve;
+            });
+        }
+
+        document.getElementById("confirm-ok").addEventListener("click", () => {
+            closeConfirm(true);
+        });
+
+        document.getElementById("confirm-cancel").addEventListener("click", () => {
+            closeConfirm(false);
+        });
+
+        function closeConfirm(val) {
+            const modal = document.getElementById("confirm-modal");
+            modal.classList.remove("active");
+            setTimeout(() => {
+                modal.style.display = "none";
+                if(confirmResolve) confirmResolve(val);
+            }, 300);
+        }
 
         async function fetchLicenses() {
             try {
@@ -223,7 +338,8 @@
         });
 
         async function deleteLicense(id, key) {
-            if(!confirm(`Yakin ingin MENGHAPUS lisensi [${key}]?\nJika user sedang online, mereka akan langsung otomatis ter-logout!`)) return;
+            const confirmed = await showConfirm(`Yakin ingin MENGHAPUS lisensi [${key}]? Jika user sedang online, mereka akan langsung otomatis ter-logout!`);
+            if(!confirmed) return;
             
             try {
                 const res = await fetch(SUPABASE_URL + "?id=eq." + id, {
