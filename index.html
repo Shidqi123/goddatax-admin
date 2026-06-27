@@ -197,6 +197,11 @@
             <h2>Daftar Lisensi</h2>
             <form class="input-group" id="add-form">
                 <input type="text" id="new-key" placeholder="Masukkan kode lisensi (misal: VIP123)" required autocomplete="off">
+                <select id="new-project" style="padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--card-color); color: var(--text-main); font-family: 'Inter', sans-serif;">
+                    <option value="SUPREME">Supreme</option>
+                    <option value="CLOUD">Cloud</option>
+                    <option value="JEANS">Jeans</option>
+                </select>
                 <button type="submit" class="btn">+ Tambah</button>
             </form>
         </div>
@@ -308,8 +313,13 @@
         document.getElementById("add-form").addEventListener("submit", async (e) => {
             e.preventDefault();
             const input = document.getElementById("new-key");
-            const key = input.value.trim().toUpperCase();
-            if(!key) return;
+            const projectInput = document.getElementById("new-project");
+            
+            const rawKey = input.value.trim().toUpperCase().replace(/-/g, "");
+            const projectVal = projectInput.value.toUpperCase();
+            
+            if(!rawKey) return;
+            const finalKey = `${projectVal}${rawKey}`;
 
             const btn = e.target.querySelector("button");
             btn.innerText = "..."; btn.disabled = true;
@@ -322,7 +332,7 @@
                         'Authorization': 'Bearer ' + SUPABASE_KEY,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ key: key })
+                    body: JSON.stringify({ key: finalKey })
                 });
 
                 if(res.ok) {
